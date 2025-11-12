@@ -34,25 +34,17 @@ class _FoodRecipesAppState extends State<FoodRecipesApp> {
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    // _loadTheme();
   }
 
-  Future<void> _loadTheme() async {
-    // You can load theme preference from SharedPreferences here if needed
-    // bool savedTheme = await Pref.getBool('isDarkMode') ?? false;
-    // setState(() {
-    //   _isDark = savedTheme;
-    //   isDarkMode = savedTheme;
-    // });
-  }
+  //Future<void> _loadTheme() async {
+ // }
 
   void toggleTheme(bool value) {
     setState(() {
       _isDark = value;
       isDarkMode = value;
     });
-    // Save theme preference
-    // Pref.setBool('isDarkMode', value);
   }
 
   @override
