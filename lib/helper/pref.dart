@@ -13,10 +13,20 @@ class Pref {
   }
 
   // Getter for showOnboarding
-  static bool get showOnboarding => _prefs?.getBool(_keyShowOnboarding) ?? true;
+  static bool get showOnboarding {
+    try {
+      return _prefs?.getBool(_keyShowOnboarding) ?? true;
+    } catch (e) {
+      return true;
+    }
+  }
 
   // Setter for showOnboarding
   static Future<bool> setShowOnboarding(bool value) async {
-    return await _prefs?.setBool(_keyShowOnboarding, value) ?? false;
+    try {
+      return await _prefs?.setBool(_keyShowOnboarding, value) ?? false;
+    } catch (e) {
+      return false;
+    }
   }
 }

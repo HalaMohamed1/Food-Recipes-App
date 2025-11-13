@@ -15,12 +15,15 @@ class Recipe {
     this.rating = 0.0,
   });
 
+  // User-added recipes
+  static List<Recipe> userRecipes = [];
+
   // Sample data
   static List<Recipe> sampleRecipes = [
     Recipe(
       id: '1',
       title: 'Pasta Carbonara',
-      imageUrl: 'assets/images/pasta.jpg',
+      imageUrl: 'assets/images/Pasta.jpg',
       category: 'Italian',
       prepTime: 25,
       rating: 4.7,
@@ -28,7 +31,7 @@ class Recipe {
     Recipe(
       id: '2',
       title: 'Chicken Tikka Masala',
-      imageUrl: 'assets/images/tikka.jpg',
+      imageUrl: 'assets/images/Tikka.jpg',
       category: 'Indian',
       prepTime: 45,
       rating: 4.8,
@@ -36,7 +39,7 @@ class Recipe {
     Recipe(
       id: '3',
       title: 'Caesar Salad',
-      imageUrl: 'assets/images/salad.jpg',
+      imageUrl: 'assets/images/Salad.jpg',
       category: 'Salad',
       prepTime: 15,
       rating: 4.5,
@@ -44,16 +47,31 @@ class Recipe {
     Recipe(
       id: '4',
       title: 'Beef Burger',
-      imageUrl: 'assets/images/burger.jpg',
+      imageUrl: 'assets/images/Burger.jpg',
       category: 'Fast Food',
       prepTime: 20,
       rating: 4.6,
     ),
   ];
 
+  // Get all recipes (sample + user-added)
+  static List<Recipe> get allRecipes {
+    return [...sampleRecipes, ...userRecipes];
+  }
+
   // Get unique categories from recipes
   static List<String> get categories {
-    final categories = sampleRecipes.map((r) => r.category).toSet().toList();
-    return ['All'] + categories;
+    final categories = allRecipes.map((r) => r.category).toSet().toList();
+    final categoryList = ['All'] + categories;
+    // Add "My Recipe" if user has added recipes
+    if (userRecipes.isNotEmpty && !categoryList.contains('My Recipe')) {
+      categoryList.add('My Recipe');
+    }
+    return categoryList;
+  }
+
+  // Add a new recipe
+  static void addRecipe(Recipe recipe) {
+    userRecipes.add(recipe);
   }
 }

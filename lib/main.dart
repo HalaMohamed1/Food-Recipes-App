@@ -8,12 +8,20 @@ import 'package:food_recipes_app/widgets/bottom_nav_bar.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Pref.init();
+  try {
+    await Pref.init();
+  } catch (e) {
+    debugPrint('Error initializing SharedPreferences: $e');
+  }
   
   // Set system UI mode and orientation
-  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  await SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  try {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    await SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  } catch (e) {
+    debugPrint('Error setting system UI: $e');
+  }
   
   runApp(const FoodRecipesApp());
 }
