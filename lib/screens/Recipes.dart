@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:food_recipes_app/models/recipe.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class RecipesScreen extends StatefulWidget {
+  const RecipesScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<RecipesScreen> createState() => _RecipesScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _RecipesScreenState extends State<RecipesScreen> {
   String selectedCategory = 'All';
   final TextEditingController _searchController = TextEditingController();
 
