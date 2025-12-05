@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:food_recipes_app/services/auth_service.dart';
 import 'package:food_recipes_app/services/storage_service.dart';
 import 'package:food_recipes_app/screens/login_screen.dart';
+import 'package:food_recipes_app/helper/theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -135,6 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
     final isLoggedIn = user != null;
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     if (_isLoading) {
       return Scaffold(
@@ -349,7 +352,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Name
             Text(
               _userProfile?['fullName'] ?? 'User',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: themeProvider.isDark ? Colors.white : Colors.black87,
