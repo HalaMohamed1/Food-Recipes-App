@@ -302,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   )
                                 : const DecorationImage(
                                     image: AssetImage(
-                                      'assets/images/dr.youssry.png',
+                                      '',
                                     ),
                                     fit: BoxFit.cover,
                                   )),

@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'package:food_recipes_app/screens/Splash_screen.dart';
 import 'package:food_recipes_app/screens/login_screen.dart';
 import 'package:food_recipes_app/screens/signup_screen.dart';
+import 'package:food_recipes_app/widgets/bottom_nav_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,7 @@ class FoodRecipesApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
       routes: {
+        '/home': (context) => const BottomNavBar(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
       },
