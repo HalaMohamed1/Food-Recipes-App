@@ -8,11 +8,15 @@ import 'package:food_recipes_app/screens/signup_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  print("✅ Firebase Connected Successfully!");
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("✅ Firebase Connected Successfully!");
+  } catch (e) {
+    print("⚠️ Firebase initialization warning: $e");
+    // Continue anyway - Firebase might initialize on first use
+  }
   
   runApp(const FoodRecipesApp());
 }

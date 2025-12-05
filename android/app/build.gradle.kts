@@ -18,6 +18,7 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
+        freeCompilerArgs += "-Xno-param-assertions"
     }
 
     defaultConfig {
@@ -36,6 +37,10 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
+    }
+
+    bundle {
+        language.enableSplit = false
     }
 }
 
