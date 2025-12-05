@@ -299,8 +299,32 @@ class _AddRecipePageState extends State<AddScreen> {
               const SizedBox(height: 15),
               _buildTextField(_categoryController, "Category *", "Dessert"),
               const SizedBox(height: 15),
-              _buildTextField(
-                  _difficultyController, "Difficulty", "Easy, Medium, Hard"),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _prepTimeController,
+                      label: "Prep Time (min)",
+                      hint: "15",
+                      validator: (value) => FormValidator.validateTime(value, 'Prep Time'),
+                      onChanged: (value) => _formHandler.setFieldValue('prepTime', value),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _cookTimeController,
+                      label: "Cook Time (min)",
+                      hint: "30",
+                      validator: (value) => FormValidator.validateTime(value, 'Cook Time'),
+                      onChanged: (value) => _formHandler.setFieldValue('cookTime', value),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 15),
               _buildTextField(
                   _prepTimeController, "Prep Time (min)", "15",
@@ -358,10 +382,10 @@ class _AddRecipePageState extends State<AddScreen> {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      keyboardType:
-          maxLines > 1 ? TextInputType.multiline : keyboardType,
-      textInputAction:
-          maxLines > 1 ? TextInputAction.newline : TextInputAction.next,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      validator: validator,
+      textInputAction: maxLines == 1 ? TextInputAction.next : null,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

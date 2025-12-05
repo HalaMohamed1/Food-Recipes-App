@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android build files and generated code
+/android/app/build/
+/android/build/
+/android/.gradle/
+*.gradle
+*.properties
+/android/app/src/main/AndroidManifest.xml
+/android/app/src/main/kotlin/
+/android/local.properties
+pubspec.lock
+.gradle/
+build.gradle.kts

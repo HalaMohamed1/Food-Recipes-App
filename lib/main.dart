@@ -4,24 +4,24 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'package:food_recipes_app/helper/theme_provider.dart';
 import 'package:food_recipes_app/screens/Splash_screen.dart';
+import 'package:food_recipes_app/screens/login_screen.dart';
+import 'package:food_recipes_app/screens/signup_screen.dart';
+import 'package:food_recipes_app/widgets/bottom_nav_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  print("✅ Firebase Connected Successfully!");
-
-  // ✅ Wrap the app with Provider for Theme Management
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: const FoodRecipesApp(),
-    ),
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("✅ Firebase Connected Successfully!");
+  } catch (e) {
+    print("⚠️ Firebase initialization warning: $e");
+    // Continue anyway - Firebase might initialize on first use
+  }
+  
+  runApp(const FoodRecipesApp());
 }
 
 class FoodRecipesApp extends StatelessWidget {
@@ -29,17 +29,24 @@ class FoodRecipesApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Get ThemeProvider instance
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-
-      // ✅ Switch between light & dark themes
-      theme: themeProvider.currentTheme,
-
-      // ✅ App Entry Point
-      home: const SplashScreen(),
+    return ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData.light(),
+            darkTheme: ThemeData.dark(),
+            themeMode: themeProvider.isDark ? ThemeMode.dark : ThemeMode.light,
+            home: const SplashScreen(),
+            routes: {
+              '/home': (context) => const BottomNavBar(),
+              '/login': (context) => const LoginScreen(),
+              '/signup': (context) => const SignupScreen(),
+            },
+          );
+        },
+      ),
     );
   }
 }
