@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:food_recipes_app/helper/pref.dart';
 import 'package:food_recipes_app/screens/Splash_screen.dart';
 import 'package:food_recipes_app/theme/app_theme.dart';
-import 'package:food_recipes_app/widgets/bottom_nav_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
