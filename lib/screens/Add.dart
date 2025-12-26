@@ -379,9 +379,14 @@ class _AddRecipePageState extends State<AddScreen> {
               const SizedBox(height: 25),
 
               _buildTextField(
-                  _nameController, "Recipe Name *", "e.g., Chocolate Cake"),
+                  controller: _nameController,
+                  label: "Recipe Name *",
+                  hint: "e.g., Chocolate Cake"),
               const SizedBox(height: 15),
-              _buildTextField(_categoryController, "Category *", "Dessert"),
+              _buildTextField(
+                  controller: _categoryController,
+                  label: "Category *",
+                  hint: "Dessert"),
               const SizedBox(height: 15),
 
               Row(
@@ -411,19 +416,29 @@ class _AddRecipePageState extends State<AddScreen> {
               ),
               const SizedBox(height: 15),
               _buildTextField(
-                  _prepTimeController, "Prep Time (min)", "15",
+                  controller: _prepTimeController,
+                  label: "Prep Time (min)",
+                  hint: "15",
                   keyboardType: TextInputType.number),
               const SizedBox(height: 15),
               _buildTextField(
-                  _cookTimeController, "Cook Time (min)", "30",
+                  controller: _cookTimeController,
+                  label: "Cook Time (min)",
+                  hint: "30",
                   keyboardType: TextInputType.number),
               const SizedBox(height: 15),
-              _buildTextField(_servingsController, "Servings", "4",
+              _buildTextField(
+                  controller: _servingsController,
+                  label: "Servings",
+                  hint: "4",
                   keyboardType: TextInputType.number),
               const SizedBox(height: 15),
-              _buildTextField(_descriptionController, "Description",
-                  "Write short details about your recipe...",
-                  maxLines: 3, keyboardType: TextInputType.multiline),
+              _buildTextField(
+                  controller: _descriptionController,
+                  label: "Description",
+                  hint: "Write short details about your recipe...",
+                  maxLines: 3,
+                  keyboardType: TextInputType.multiline),
               const SizedBox(height: 25),
 
               /// ✅ unified add button
@@ -461,14 +476,20 @@ class _AddRecipePageState extends State<AddScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, String hint,
-      {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+    Function(String)? onChanged,
+  }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      validator: validator,
       textInputAction: maxLines == 1 ? TextInputAction.next : null,
       decoration: InputDecoration(
         labelText: label,
@@ -480,7 +501,7 @@ class _AddRecipePageState extends State<AddScreen> {
           borderRadius: BorderRadius.circular(10),
         ),
       ),
-      validator: (value) {
+      validator: validator ?? (value) {
         if (label.contains('*') && (value == null || value.isEmpty)) {
           return 'This field is required';
         }
