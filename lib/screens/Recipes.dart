@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:food_recipes_app/helper/api_service.dart';
 import 'package:food_recipes_app/screens/Add.dart';
+import 'package:food_recipes_app/widgets/CookingTimer.dart';
 
 class RecipesScreen extends StatefulWidget {
   const RecipesScreen({super.key});
@@ -376,6 +377,8 @@ class RecipeDetailsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             Text(recipe['instructions'].join('\n')),
+            const SizedBox(height: 30),
+            const CookingTimer(),
           ],
         ),
       ),
@@ -431,6 +434,8 @@ class FirebaseRecipeDetailsScreen extends StatelessWidget {
             const Text("🧾 Description:",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Text(recipe['description'] ?? 'No details provided'),
+            const SizedBox(height: 30),
+            const CookingTimer(),
           ],
         ),
       ),
