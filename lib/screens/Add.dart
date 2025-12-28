@@ -8,6 +8,7 @@ import '/helper/form_validator.dart';
 import '/helper/user_feedback.dart';
 import '/helper/form_handler.dart';
 import '/services/recipe_service.dart';
+import '/services/notification_service.dart';
 
 class AddScreen extends StatefulWidget {
   const AddScreen({super.key});
@@ -223,6 +224,9 @@ class _AddRecipePageState extends State<AddScreen> {
       );
       print('DEBUG: Recipe saved to Firebase successfully');
 
+      // Store recipe name for notification before clearing
+      final recipeName = recipeData['name']!;
+
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
         
@@ -235,6 +239,9 @@ class _AddRecipePageState extends State<AddScreen> {
         _servingsController.clear();
         _descriptionController.clear();
         setState(() => _image = null);
+        
+        // Show notification for recipe added
+        NotificationService.showRecipeAddedNotification(context, recipeName);
         
         // Show success dialog
         await UserFeedback.showSuccessDialog(

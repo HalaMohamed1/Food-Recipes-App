@@ -84,32 +84,17 @@ class _RecipesScreenState extends State<RecipesScreen> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         foregroundColor: theme.appBarTheme.foregroundColor,
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: "debug",
-            backgroundColor: Colors.blue,
-            mini: true,
-            onPressed: () async {
-              await RecipeService().debugPrintDatabaseContents();
-            },
-            child: const Icon(Icons.bug_report),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton(
-            heroTag: "add",
-            backgroundColor: Colors.orangeAccent,
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddScreen()),
-              );
-              // Firebase stream will auto-update when recipe is added
-            },
-            child: const Icon(Icons.add),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        heroTag: "add",
+        backgroundColor: Colors.orangeAccent,
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddScreen()),
+          );
+          // Firebase stream will auto-update when recipe is added
+        },
+        child: const Icon(Icons.add),
       ),
       body: _isLoading
           ? Center(

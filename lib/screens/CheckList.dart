@@ -16,7 +16,8 @@ class _CheckListScreenState extends State<CheckListScreen> {
   @override
   void initState() {
     super.initState();
-    checklists = List.from(Checklist.sampleChecklists);
+    // Start with empty checklists - no placeholder data
+    checklists = [];
   }
 
   @override
@@ -66,19 +67,56 @@ class _CheckListScreenState extends State<CheckListScreen> {
               title: title,
               recipeId: '',
               createdAt: DateTime.now(),
-              items: [],
+              items: <ChecklistItem>[], // Explicitly typed mutable list
             );
             checklists.add(newChecklist);
             selectedChecklistIndex = checklists.length - 1;
-            pageController.animateToPage(
-              selectedChecklistIndex,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
+          });
+          // Animate to new page after frame is built
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (checklists.isNotEmpty && pageController.hasClients) {
+              pageController.animateToPage(
+                selectedChecklistIndex,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
           });
         },
       ),
     );
+  }
+
+  void _addItemToChecklist(String checklistId) {
+    showDialog(
+      context: context,
+      builder: (context) => _AddItemDialog(
+        onAdd: (name, quantity, unit) {
+          setState(() {
+            final checklistIndex = checklists.indexWhere((c) => c.id == checklistId);
+            if (checklistIndex != -1) {
+              final newItem = ChecklistItem(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: name,
+                category: 'General',
+                quantity: quantity,
+                unit: unit,
+              );
+              checklists[checklistIndex].items.add(newItem);
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  void _deleteItem(String checklistId, String itemId) {
+    setState(() {
+      final checklistIndex = checklists.indexWhere((c) => c.id == checklistId);
+      if (checklistIndex != -1) {
+        checklists[checklistIndex].items.removeWhere((item) => item.id == itemId);
+      }
+    });
   }
 
   @override
@@ -302,16 +340,50 @@ class _CheckListScreenState extends State<CheckListScreen> {
           Expanded(
             child: checklist.items.isEmpty
                 ? Center(
-                    child: Text(
-                      'No items in this checklist',
-                      style: TextStyle(color: Colors.grey[600]),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.checklist, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No items in this checklist',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => _addItemToChecklist(checklist.id),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Item'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 20),
-                    children: checklist.items.map((item) {
-                      return _buildChecklistTile(theme, item, checklist.id);
-                    }).toList(),
+                    children: [
+                      ...checklist.items.map((item) {
+                        return _buildChecklistTile(theme, item, checklist.id);
+                      }),
+                      // Add Item Button at the bottom
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                        child: ElevatedButton.icon(
+                          onPressed: () => _addItemToChecklist(checklist.id),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Item'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
           ),
         ],
@@ -323,36 +395,55 @@ class _CheckListScreenState extends State<CheckListScreen> {
       ThemeData theme, ChecklistItem item, String checklistId) {
     final textColor = theme.textTheme.bodyLarge?.color;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: item.isChecked
-              ? Colors.green
-              : Colors.grey[300]!,
-          width: 1.5,
+    return Dismissible(
+      key: Key(item.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction) => _deleteItem(checklistId, item.id),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
         ),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
-      child: ListTile(
-        onTap: () => _toggleItem(checklistId, item.id),
-        leading: Icon(
-          item.isChecked ? Icons.check_box : Icons.check_box_outline_blank,
-          color: item.isChecked ? Colors.green : textColor,
-        ),
-        title: Text(
-          item.name,
-          style: TextStyle(
-            color: item.isChecked ? Colors.grey : textColor,
-            decoration: item.isChecked
-                ? TextDecoration.lineThrough
-                : null,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: item.isChecked
+                ? Colors.green
+                : Colors.grey[300]!,
+            width: 1.5,
           ),
         ),
-        subtitle: Text(
-          '${item.quantity} ${item.unit}',
-          style: TextStyle(color: Colors.grey[600]),
+        child: ListTile(
+          onTap: () => _toggleItem(checklistId, item.id),
+          leading: Icon(
+            item.isChecked ? Icons.check_box : Icons.check_box_outline_blank,
+            color: item.isChecked ? Colors.green : textColor,
+          ),
+          title: Text(
+            item.name,
+            style: TextStyle(
+              color: item.isChecked ? Colors.grey : textColor,
+              decoration: item.isChecked
+                  ? TextDecoration.lineThrough
+                  : null,
+            ),
+          ),
+          subtitle: Text(
+            '${item.quantity} ${item.unit}',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          trailing: IconButton(
+            icon: Icon(Icons.delete_outline, color: Colors.red[400], size: 20),
+            onPressed: () => _deleteItem(checklistId, item.id),
+          ),
         ),
       ),
     );
@@ -473,6 +564,159 @@ class _AddChecklistDialogState extends State<_AddChecklistDialog> {
             backgroundColor: Colors.orangeAccent,
           ),
           child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+// Dialog to add new item to checklist
+class _AddItemDialog extends StatefulWidget {
+  final Function(String name, String quantity, String unit) onAdd;
+  const _AddItemDialog({required this.onAdd});
+
+  @override
+  State<_AddItemDialog> createState() => _AddItemDialogState();
+}
+
+class _AddItemDialogState extends State<_AddItemDialog> {
+  late TextEditingController _nameController;
+  late TextEditingController _quantityController;
+  String _selectedUnit = 'pieces';
+  
+  final List<String> _units = [
+    'pieces',
+    'cups',
+    'tbsp',
+    'tsp',
+    'g',
+    'kg',
+    'ml',
+    'L',
+    'oz',
+    'lb',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _quantityController = TextEditingController(text: '1');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.textTheme.bodyLarge?.color;
+
+    return AlertDialog(
+      backgroundColor: theme.cardColor,
+      title: Text('Add Item', style: TextStyle(color: textColor)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Item Name
+            TextField(
+              controller: _nameController,
+              style: TextStyle(color: textColor),
+              decoration: InputDecoration(
+                labelText: 'Item Name',
+                hintText: 'e.g., Flour, Eggs, Salt',
+                filled: true,
+                fillColor: theme.scaffoldBackgroundColor,
+                hintStyle: TextStyle(color: Colors.grey[500]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Quantity and Unit Row
+            Row(
+              children: [
+                // Quantity
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _quantityController,
+                    style: TextStyle(color: textColor),
+                    keyboardType: TextInputType.text,
+                    decoration: InputDecoration(
+                      labelText: 'Quantity',
+                      hintText: '1',
+                      filled: true,
+                      fillColor: theme.scaffoldBackgroundColor,
+                      hintStyle: TextStyle(color: Colors.grey[500]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // Unit Dropdown
+                Expanded(
+                  flex: 3,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedUnit,
+                    decoration: InputDecoration(
+                      labelText: 'Unit',
+                      filled: true,
+                      fillColor: theme.scaffoldBackgroundColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    dropdownColor: theme.cardColor,
+                    style: TextStyle(color: textColor),
+                    items: _units.map((unit) {
+                      return DropdownMenuItem(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedUnit = value ?? 'pieces';
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: textColor)),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_nameController.text.isNotEmpty) {
+              widget.onAdd(
+                _nameController.text,
+                _quantityController.text.isEmpty ? '1' : _quantityController.text,
+                _selectedUnit,
+              );
+              Navigator.pop(context);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orangeAccent,
+          ),
+          child: const Text('Add'),
         ),
       ],
     );

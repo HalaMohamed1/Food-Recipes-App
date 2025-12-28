@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:food_recipes_app/services/auth_service.dart';
+import 'package:food_recipes_app/services/notification_service.dart';
 import 'package:food_recipes_app/screens/login_screen.dart';
 import 'package:food_recipes_app/helper/theme_provider.dart';
 import 'package:food_recipes_app/helper/pref.dart';
@@ -162,42 +163,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Show Notifications Dialog
-  void _showNotificationsDialog() {
+  void _showNotificationsDialog() async {
+    bool notificationsEnabled = await NotificationService.areNotificationsEnabled();
+    
+    if (!mounted) return;
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.notifications_outlined, color: Colors.orangeAccent),
-            SizedBox(width: 8),
-            Text('Notifications'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SwitchListTile(
-              title: const Text('Push Notifications'),
-              subtitle: const Text('Receive notifications about new recipes'),
-              value: true,
-              onChanged: (value) {},
-              activeColor: Colors.orangeAccent,
-            ),
-            SwitchListTile(
-              title: const Text('Email Notifications'),
-              subtitle: const Text('Receive weekly recipe recommendations'),
-              value: false,
-              onChanged: (value) {},
-              activeColor: Colors.orangeAccent,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.notifications_outlined, color: Colors.orangeAccent),
+              SizedBox(width: 8),
+              Text('Notifications'),
+            ],
           ),
-        ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('Push Notifications'),
+                subtitle: Text(
+                  notificationsEnabled 
+                    ? 'Get notified when recipes are added'
+                    : 'Notifications are currently off',
+                ),
+                value: notificationsEnabled,
+                onChanged: (value) async {
+                  await NotificationService.setNotificationsEnabled(value);
+                  setDialogState(() {
+                    notificationsEnabled = value;
+                  });
+                },
+                activeColor: Colors.orangeAccent,
+              ),
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'When enabled, you\'ll receive notifications when new recipes are added.',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
       ),
     );
   }
