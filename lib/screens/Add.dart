@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '/helper/form_validator.dart';
@@ -103,16 +102,32 @@ class _AddRecipePageState extends State<AddScreen> {
     }
   }
 
-  Future<String?> _uploadImageToFirebase(File imageFile) async {
+  /// Save image locally to app's documents directory (FREE - no Firebase Storage needed)
+  Future<String?> _saveImageLocally(File imageFile) async {
     try {
-      final fileName = "recipes/${DateTime.now().millisecondsSinceEpoch}.jpg";
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-      await ref.putFile(imageFile);
-      return await ref.getDownloadURL();
+      // Get the app's documents directory
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory('${appDir.path}/recipe_images');
+      
+      // Create the directory if it doesn't exist
+      if (!await imagesDir.exists()) {
+        await imagesDir.create(recursive: true);
+      }
+      
+      // Generate unique filename
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final savedImagePath = '${imagesDir.path}/$fileName';
+      
+      // Copy the image to the app's directory
+      await imageFile.copy(savedImagePath);
+      
+      print('✅ Image saved locally: $savedImagePath');
+      return savedImagePath;
     } catch (e) {
+      print('❌ Failed to save image locally: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Image upload error: $e'),
+          content: Text('❌ Image save error: $e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -149,28 +164,30 @@ class _AddRecipePageState extends State<AddScreen> {
         confirmText: 'Continue',
         cancelText: 'Add Image',
       );
-      return;
+      if (confirm != true) {
+        return;
+      }
     }
 
     setState(() => _isUploading = true);
 
     try {
       print('DEBUG: Showing loading dialog');
-      // Show loading dialog
+      // Show loading dialog (don't await - it will block)
       if (mounted) {
-        await UserFeedback.showLoadingDialog(
+        UserFeedback.showLoadingDialog(
           context,
           message: 'Saving your recipe...',
           dismissible: false,
         );
       }
 
-      // Upload image if selected
+      // Save image locally if selected (FREE - no Firebase Storage needed)
       String? imageUrl;
       if (_image != null) {
-        print('DEBUG: Starting image upload');
-        imageUrl = await _uploadImageToFirebase(_image!);
-        print('DEBUG: Image upload completed. URL: $imageUrl');
+        print('DEBUG: Starting local image save');
+        imageUrl = await _saveImageLocally(_image!);
+        print('DEBUG: Image saved locally. Path: $imageUrl');
         if (imageUrl == null && mounted) {
           Navigator.pop(context); // Close loading dialog
           UserFeedback.showWarning(context, 'Continuing without image');
@@ -191,9 +208,10 @@ class _AddRecipePageState extends State<AddScreen> {
       print('DEBUG: Recipe data: $recipeData');
 
       print('DEBUG: Saving to Firebase Realtime Database');
+      
       // Save to Firebase Realtime Database using RecipeService
       final recipeService = RecipeService();
-      final recipeId = await recipeService.addRecipe(
+      await recipeService.addRecipe(
         name: recipeData['name']!,
         category: recipeData['category']!,
         difficulty: recipeData['difficulty']!,
@@ -203,7 +221,7 @@ class _AddRecipePageState extends State<AddScreen> {
         description: recipeData['description']!,
         imageUrl: recipeData['imageUrl']!,
       );
-      print('DEBUG: Recipe saved with ID: $recipeId');
+      print('DEBUG: Recipe saved to Firebase successfully');
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog

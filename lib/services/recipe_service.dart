@@ -1,9 +1,14 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class RecipeService {
-  final FirebaseDatabase _database = FirebaseDatabase.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Use lazy initialization to avoid "no instance" error
+  FirebaseDatabase get _database => FirebaseDatabase.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+
+  // Check if Firebase is initialized
+  bool get _isFirebaseInitialized => Firebase.apps.isNotEmpty;
 
   // Reference to recipes in Realtime Database
   DatabaseReference get _recipesRef => _database.ref().child('recipes');
@@ -25,6 +30,12 @@ class RecipeService {
   }) async {
     try {
       print('=== RECIPE SERVICE: Starting addRecipe ===');
+      
+      // Check if Firebase is initialized
+      if (!_isFirebaseInitialized) {
+        print('RECIPE SERVICE ERROR: Firebase not initialized');
+        throw Exception('Firebase not initialized. Please restart the app.');
+      }
       
       final userId = _auth.currentUser?.uid;
       if (userId == null) {
@@ -133,6 +144,12 @@ class RecipeService {
 
   // Stream of all recipes (real-time updates)
   Stream<List<Map<String, dynamic>>> getAllRecipesStream() {
+    // Return empty stream if Firebase is not initialized
+    if (!_isFirebaseInitialized) {
+      print('RECIPE SERVICE: Firebase not initialized, returning empty stream');
+      return Stream.value([]);
+    }
+    
     return _recipesRef.onValue.map((event) {
       if (!event.snapshot.exists) {
         return [];

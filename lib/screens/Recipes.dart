@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:food_recipes_app/helper/api_service.dart';
 import 'package:food_recipes_app/screens/Add.dart';
 import '/services/recipe_service.dart';
@@ -106,6 +105,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 context,
                 MaterialPageRoute(builder: (_) => const AddScreen()),
               );
+              // Firebase stream will auto-update when recipe is added
             },
             child: const Icon(Icons.add),
           ),
@@ -190,8 +190,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                     stream: _recipesStream,
                     builder: (context, snapshot) {
-                      final userRecipes = snapshot.data ?? [];
-                      if (_filteredRecipes.isEmpty && userRecipes.isEmpty) {
+                      final firebaseRecipes = snapshot.data ?? [];
+
+                      // Combine Firebase recipes with API recipes
+                      final allRecipes = <Map<String, dynamic>>[
+                        ...firebaseRecipes.map((r) => {...r, 'source': 'firebase'}),
+                        ..._filteredRecipes,
+                      ];
+
+                      if (allRecipes.isEmpty) {
                         return Center(
                           child: Text(
                             'No recipes found 😔',
@@ -202,9 +209,6 @@ class _RecipesScreenState extends State<RecipesScreen> {
                         );
                       }
 
-                      final totalRecipes =
-                          _filteredRecipes.length + userRecipes.length;
-
                       return GridView.builder(
                         padding: const EdgeInsets.all(16),
                         gridDelegate:
@@ -214,16 +218,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                           mainAxisSpacing: 16,
                           childAspectRatio: 0.75,
                         ),
-                        itemCount: totalRecipes,
+                        itemCount: allRecipes.length,
                         itemBuilder: (context, index) {
-                          if (index < userRecipes.length) {
-                            final recipe = userRecipes[index];
-                            return _buildFirebaseRecipeCard(recipe, context);
-                          } else {
-                            final recipe = _filteredRecipes[
-                                index - userRecipes.length];
-                            return _buildApiRecipeCard(recipe, context);
-                          }
+                          final recipe = allRecipes[index];
+                          final isLocal = recipe['source'] == 'local';
+                          
+                          return _buildRecipeCard(recipe, context, isLocal);
                         },
                       );
                     },
@@ -234,45 +234,45 @@ class _RecipesScreenState extends State<RecipesScreen> {
     );
   }
 
-  // 🔹 Recipe from API
-  Widget _buildApiRecipeCard(dynamic recipe, BuildContext context) {
+  // 🔹 Unified Recipe Card Builder
+  Widget _buildRecipeCard(Map<String, dynamic> recipe, BuildContext context, bool isLocal) {
+    final isFirebase = recipe['source'] == 'firebase';
+    
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RecipeDetailsScreen(recipe: recipe),
-          ),
-        );
+        if (isFirebase) {
+          // Firebase recipe
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FirebaseRecipeDetailsScreen(recipe: recipe),
+            ),
+          );
+        } else if (recipe.containsKey('mealType')) {
+          // API recipe
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RecipeDetailsScreen(recipe: recipe),
+            ),
+          );
+        } else {
+          // Fallback to Firebase details
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FirebaseRecipeDetailsScreen(recipe: recipe),
+            ),
+          );
+        }
       },
       child: _buildCard(
-        image: recipe['image'],
-        name: recipe['name'],
-        category: recipe['mealType']?.first ?? "General",
-        prepTime: "${recipe['prepTimeMinutes']} min",
-        context: context,
-      ),
-    );
-  }
-
-  // 🔹 Recipe from Firebase
-  Widget _buildFirebaseRecipeCard(
-      Map<String, dynamic> recipe, BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FirebaseRecipeDetailsScreen(recipe: recipe),
-          ),
-        );
-      },
-      child: _buildCard(
-        image: recipe['image'] ?? '',
+        image: recipe['image'] ?? recipe['imageUrl'] ?? '',
         name: recipe['name'] ?? 'No Name',
         category: recipe['category'] ?? 'N/A',
-        prepTime: recipe['prepTime'] ?? '--',
+        prepTime: recipe['prepTime']?.toString() ?? recipe['cookTime']?.toString() ?? '--',
         context: context,
+        isLocal: isLocal,
       ),
     );
   }
@@ -284,54 +284,178 @@ class _RecipesScreenState extends State<RecipesScreen> {
     required String category,
     required String prepTime,
     required BuildContext context,
+    bool isLocal = false,
   }) {
     final theme = Theme.of(context);
+
+    // Check if image is a local file path or network URL
+    final isLocalImage = image.isNotEmpty && 
+        (image.startsWith('/') || image.startsWith('C:') || image.startsWith('D:'));
 
     return Card(
       elevation: 4,
       color: theme.cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Expanded(
-            flex: 3,
-            child: ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(15)),
-              child: image.isNotEmpty
-                  ? Image.network(image,
-                      width: double.infinity, fit: BoxFit.cover)
-                  : Container(
-                      color: theme.dividerColor.withOpacity(0.1),
-                      child: const Icon(Icons.image, size: 50),
-                    ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(15)),
+                  child: image.isNotEmpty
+                      ? (isLocalImage
+                          ? Image.file(
+                              File(image),
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: theme.dividerColor.withOpacity(0.1),
+                                  child: const Icon(Icons.image, size: 50),
+                                );
+                              },
+                            )
+                          : Image.network(
+                              image,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: theme.dividerColor.withOpacity(0.1),
+                                  child: const Icon(Icons.image, size: 50),
+                                );
+                              },
+                            ))
+                      : Container(
+                          color: theme.dividerColor.withOpacity(0.1),
+                          child: const Icon(Icons.image, size: 50),
+                        ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text("Category: $category",
+                          style: theme.textTheme.bodyMedium),
+                      Text("Prep: $prepTime", style: theme.textTheme.bodyMedium),
+                    ],
                   ),
-                  Text("Category: $category",
-                      style: theme.textTheme.bodyMedium),
-                  Text("Prep: $prepTime", style: theme.textTheme.bodyMedium),
-                ],
+                ),
+              ),
+            ],
+          ),
+          if (isLocal)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  '✓ Local',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class LocalRecipeDetailsScreen extends StatelessWidget {
+  final Map<String, dynamic> recipe;
+  const LocalRecipeDetailsScreen({super.key, required this.recipe});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(recipe['name'] ?? 'Recipe'),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        foregroundColor: theme.appBarTheme.foregroundColor,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (recipe['image'] != null && recipe['image'] != '' && recipe['image'].toString().startsWith('http'))
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  recipe['image'],
+                  height: 250,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 250,
+                      color: theme.dividerColor.withOpacity(0.1),
+                      child: const Icon(Icons.image, size: 80),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                height: 250,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: theme.dividerColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.image, size: 80),
+              ),
+            const SizedBox(height: 16),
+            Text(recipe['name'] ?? '',
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text("Category: ${recipe['category'] ?? 'N/A'}",
+                style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            if (recipe['prepTime'] != null)
+              Text("Prep Time: ${recipe['prepTime']} min",
+                  style: theme.textTheme.bodyMedium),
+            if (recipe['cookTime'] != null)
+              Text("Cook Time: ${recipe['cookTime']} min",
+                  style: theme.textTheme.bodyMedium),
+            if (recipe['servings'] != null)
+              Text("Servings: ${recipe['servings']}",
+                  style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            const Text("🧾 Description:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(recipe['description'] ?? 'No details provided'),
+          ],
+        ),
       ),
     );
   }
